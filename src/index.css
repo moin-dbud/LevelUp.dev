@@ -1,1 +1,73 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: outfit;
+  src: url(/font/dd76e46248812453-s.p.ttf);
+  font-display: swap;
+  font-weight: 400;
+  font-style: normal
+}
+
+@font-face {
+  font-family: outfit;
+  src: url(/font/4cfff1248df990a8-s.p.ttf);
+  font-display: swap;
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: outfit;
+  src: url(/font/faa1bff682c4eb20-s.p.ttf);
+  font-display: swap;
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: outfit;
+  src: url(/font/4d44633bfcd5f030-s.p.ttf);
+  font-display: swap;
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: outfit Fallback;
+  src: local("Arial");
+  ascent-override: 99.94%;
+  descent-override: 25.98%;
+  line-gap-override: 0.00%;
+  size-adjust: 100.06%
+}
+
+.__className_c1f646 {
+  font-family: outfit, outfit Fallback
+}
+
+.__variable_c1f646 {
+  --font-outfit: "outfit", "outfit Fallback"
+}
+
+@font-face {
+  font-family: agile;
+  src: url(/font/15ebcde848118439-s.p.ttf) format("truetype");
+  font-display: swap
+}
+
+@font-face {
+  font-family: agile Fallback;
+  src: local("Arial");
+  ascent-override: 72.71%;
+  descent-override: 33.48%;
+  line-gap-override: 0.00%;
+  size-adjust: 104.26%
+}
+
+.__className_a0cab8 {
+  font-family: agile, agile Fallback
+}
+
+.__variable_a0cab8 {
+  --font-agile: "agile", "agile Fallback"
+}
