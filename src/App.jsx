@@ -1,12 +1,15 @@
-import { Route, Routes } from "react-router-dom";
-import Home from "./pages/Home";
+import React from 'react';
+import AppRoutes from './routes/AppRoutes';
 
+/**
+ * App Component
+ * 
+ * Root application component that sets up routing.
+ * BrowserRouter is configured in main.jsx for proper history management.
+ * All route definitions are delegated to AppRoutes for better organization.
+ */
 const App = () => {
-    return (
-        <Routes>
-          <Route path="/" element={<Home/>}/>
-        </Routes>
-    )
-}
+  return <AppRoutes />;
+};
 
 export default App;

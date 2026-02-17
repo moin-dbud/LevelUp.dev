@@ -84,7 +84,7 @@ export default function WhoWeServe() {
     </div>
   );
   return (
-    <div className="max-w-7xl mx-auto mt-16 sm:mt-20 md:mt-24">
+    <div className="max-w-7xl mx-auto sm:mt-12 md:mt-20">
       <div className="text-center mb-12 sm:mb-16 md:mb-20">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 md:mb-6 px-4 sm:px-0 text-gray-900 dark:text-white">
           WHO LevelUp.dev IS FOR
