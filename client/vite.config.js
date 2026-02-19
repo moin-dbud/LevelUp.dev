@@ -10,7 +10,7 @@ export default defineConfig({
   ],
   server: {
     allowedHosts: [
-      'lamps-evaluating-heritage-arrived.trycloudflare.com'
+      'womens-imagine-framed-spell.trycloudflare.com'
     ]
   }
 })
