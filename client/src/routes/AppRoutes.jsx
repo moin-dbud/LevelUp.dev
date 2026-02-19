@@ -1,5 +1,6 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 // Page Imports
 import Home from '../pages/Home';
@@ -14,46 +15,72 @@ import Register from '../pages/Register';
 import Courses from '../pages/Courses';
 import NotFound from '../pages/NotFound';
 
-/**
- * AppRoutes Component
- * 
- * Centralized routing configuration for the entire application.
- * All route definitions are maintained here for easy management and scalability.
- * 
- * Route Structure:
- * - / - Home page
- * - /about - About page
- * - /blogs - Blogs listing
- * - /dashboard - User dashboard
- * - /course/:id - Individual course page (dynamic)
- * - /task/:id - Individual task page (dynamic)
- * - /profile - User profile
- * - /login - Login page
- * - /register - Registration page
- * - * - 404 Not Found (catch-all)
- */
+/* ──────────────────────────────────────────
+   Guards
+────────────────────────────────────────── */
+
+/** Redirects unauthenticated users to /login */
+function PrivateRoute({ children }) {
+    const { user, loading } = useAuth();
+    const location = useLocation();
+
+    if (loading) return <FullPageLoader />;
+    if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+    return children;
+}
+
+/** Redirects already-authenticated users away from login/register */
+function GuestRoute({ children }) {
+    const { user, loading } = useAuth();
+    if (loading) return <FullPageLoader />;
+    if (user) return <Navigate to="/dashboard" replace />;
+    return children;
+}
+
+/** Full-page loading spinner shown while auth status resolves */
+function FullPageLoader() {
+    return (
+        <div style={{
+            minHeight: '100vh', background: '#000',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column', gap: '16px',
+            fontFamily: 'outfit, Arial, sans-serif',
+        }}>
+            <div style={{
+                width: '40px', height: '40px', borderRadius: '50%',
+                border: '3px solid rgba(60,131,246,0.2)',
+                borderTopColor: '#3C83F6',
+                animation: 'spin 0.75s linear infinite',
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ color: '#a1a1aa', fontSize: '14px' }}>Loading…</p>
+        </div>
+    );
+}
+
+/* ──────────────────────────────────────────
+   Routes
+────────────────────────────────────────── */
 const AppRoutes = () => {
     return (
         <Routes>
-            {/* Public Routes */}
+            {/* ── Public Routes ── */}
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/blogs" element={<Blogs />} />
 
-            {/* Authentication Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/* ── Guest-only Routes (redirect to /dashboard if already logged in) ── */}
+            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+            <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/courses" element={<Courses />} />
+            {/* ── Protected Routes (redirect to /login if not authenticated) ── */}
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/courses" element={<PrivateRoute><Courses /></PrivateRoute>} />
+            <Route path="/course/:id" element={<PrivateRoute><Course /></PrivateRoute>} />
+            <Route path="/task/:id" element={<PrivateRoute><Task /></PrivateRoute>} />
 
-            {/* Dynamic Routes */}
-            <Route path="/course/:id" element={<Course />} />
-            <Route path="/task/:id" element={<Task />} />
-
-            {/* 404 Fallback - Must be last */}
+            {/* ── 404 Fallback ── */}
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

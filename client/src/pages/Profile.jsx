@@ -17,20 +17,6 @@ const C = {
     text: '#fff', muted: '#a1a1aa', dim: '#555',
 };
 
-/* ── Static enrolled courses (from Dashboard) ── */
-const ENROLLED_COURSES = [
-    {
-        id: 'ai-cohort-2', title: '2.0 Job Ready AI Powered Cohort',
-        enrolledDate: 'August 20, 2025', progress: 1.97,
-        image: 'https://ik.imagekit.io/sheryians/Cohort%202.0/cohort-3_ekZjBiRzc-2_76HU4-Mz5z.jpeg?updatedAt=1757741949621',
-    },
-    {
-        id: 'fullstack-dev', title: 'Full Stack Web Development',
-        enrolledDate: 'September 1, 2025', progress: 25.5,
-        image: 'https://ik.imagekit.io/sheryians/Cohort%202.0/cohort-3_ekZjBiRzc-2_76HU4-Mz5z.jpeg?updatedAt=1757741949621',
-    },
-];
-
 const SECTIONS = [
     { id: 'basic', label: 'Basic Info', sub: 'Personal details', Icon: User },
     { id: 'professional', label: 'Professional', sub: 'Work & education', Icon: Briefcase },
@@ -45,7 +31,7 @@ const STATUS_CONFIG = {
 };
 
 export default function Profile() {
-    const { user, loading, updateBasicProfile, updateProfessionalProfile, getProjects, submitProject, deleteProject, logout } = useAuth();
+    const { user, loading, updateBasicProfile, updateProfessionalProfile, getProjects, submitProject, deleteProject, logout, getEnrolledCourses } = useAuth();
     const navigate = useNavigate();
 
     const [activeSection, setActiveSection] = useState('basic');
@@ -73,6 +59,10 @@ export default function Profile() {
     const [projSubmitting, setProjSubmitting] = useState(false);
     const [projError, setProjError] = useState('');
 
+    /* ── Enrolled courses (batches) state ── */
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
+    const [batchesLoading, setBatchesLoading] = useState(false);
+
     /* ── Feedback ── */
     const [feedback, setFeedback] = useState({ msg: '', type: '' });
     const flash = (msg, type = 'success') => { setFeedback({ msg, type }); setTimeout(() => setFeedback({ msg: '', type: '' }), 3500); };
@@ -98,6 +88,16 @@ export default function Profile() {
         if (activeSection !== 'projects') return;
         setProjLoading(true);
         getProjects().then(d => setProjects(d.projects || [])).catch(() => { }).finally(() => setProjLoading(false));
+    }, [activeSection]);
+
+    /* ── Load enrolled courses when switching to batches tab ── */
+    useEffect(() => {
+        if (activeSection !== 'batches') return;
+        setBatchesLoading(true);
+        getEnrolledCourses()
+            .then(d => setEnrolledCourses(d.enrolledCourses || []))
+            .catch(() => { })
+            .finally(() => setBatchesLoading(false));
     }, [activeSection]);
 
     /* ── Handlers ── */
@@ -198,7 +198,7 @@ export default function Profile() {
                             {profForm.designation || 'Select Profession'}
                         </span>
                         {profForm.company && (
-                            <p style={{ alignItems: 'center', justifyContent: 'center',  fontSize: '12px', color: C.dim }}>{profForm.company}</p>
+                            <p style={{ alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: C.dim }}>{profForm.company}</p>
                         )}
                     </div>
 
@@ -231,7 +231,7 @@ export default function Profile() {
 
                     {/* Quick stats */}
                     <div style={{ margin: '0 10px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', border: `1px solid ${C.borderS}`, borderRadius: '10px', overflow: 'hidden' }}>
-                        {[['Courses', ENROLLED_COURSES.length], ['Projects', projects.length]].map(([label, val], i) => (
+                        {[['Courses', enrolledCourses.length], ['Projects', projects.length]].map(([label, val], i) => (
                             <div key={label} style={{ padding: '14px 10px', textAlign: 'center', borderRight: i === 0 ? `1px solid ${C.borderS}` : 'none' }}>
                                 <p style={{ fontSize: '20px', fontWeight: 800, color: C.accent }}>{val}</p>
                                 <p style={{ fontSize: '11px', color: C.dim }}>{label}</p>
@@ -486,40 +486,89 @@ export default function Profile() {
                     {/* ═══ YOUR BATCHES ═══ */}
                     {activeSection === 'batches' && (
                         <>
-                            <div style={{ padding: '26px 30px 22px', borderBottom: `1px solid ${C.borderS}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <GraduationCap size={16} color="#fff" />
+                            <div style={{ padding: '26px 30px 22px', borderBottom: `1px solid ${C.borderS}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <GraduationCap size={16} color="#fff" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ fontSize: '19px', fontWeight: 700, marginBottom: '3px' }}>Your Batches</h2>
+                                        <p style={{ fontSize: '13px', color: C.muted }}>Courses you're currently enrolled in</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 style={{ fontSize: '19px', fontWeight: 700, marginBottom: '3px' }}>Your Batches</h2>
-                                    <p style={{ fontSize: '13px', color: C.muted }}>Courses you're currently enrolled in</p>
-                                </div>
+                                {/* Badge count */}
+                                {!batchesLoading && enrolledCourses.length > 0 && (
+                                    <span style={{ fontSize: '13px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', background: 'rgba(60,131,246,0.15)', color: C.accent, border: `1px solid rgba(60,131,246,0.3)` }}>
+                                        {enrolledCourses.length} enrolled
+                                    </span>
+                                )}
                             </div>
                             <div style={{ padding: '24px 30px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {ENROLLED_COURSES.map(course => (
-                                    <div key={course.id} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.borderS}`, overflow: 'hidden', display: 'flex', gap: 0 }}>
-                                        <img src={course.image} alt={course.title} style={{ width: '160px', height: '110px', objectFit: 'cover', flexShrink: 0 }} />
-                                        <div style={{ padding: '16px 20px', flex: 1 }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>{course.title}</h3>
-                                            <p style={{ fontSize: '12px', color: C.muted, marginBottom: '12px' }}>Enrolled: {course.enrolledDate}</p>
-                                            {/* Progress bar */}
-                                            <div style={{ marginBottom: '12px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                                    <span style={{ fontSize: '12px', color: C.muted }}>Progress</span>
-                                                    <span style={{ fontSize: '12px', color: C.accent, fontWeight: 600 }}>{course.progress}%</span>
-                                                </div>
-                                                <div style={{ height: '5px', background: '#333', borderRadius: '99px', overflow: 'hidden' }}>
-                                                    <div style={{ width: `${course.progress}%`, height: '100%', background: C.accent, borderRadius: '99px', transition: 'width 0.5s' }} />
+                                {batchesLoading ? (
+                                    /* Loading skeleton */
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        {[1, 2].map(i => (
+                                            <div key={i} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.borderS}`, overflow: 'hidden', display: 'flex', height: '110px' }}>
+                                                <div style={{ width: '160px', background: C.raised, flexShrink: 0, animation: 'pulse 1.4s ease-in-out infinite' }} />
+                                                <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
+                                                    <div style={{ height: '14px', background: C.raised, borderRadius: '6px', width: '65%', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                                                    <div style={{ height: '10px', background: C.raised, borderRadius: '6px', width: '40%', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                                                    <div style={{ height: '6px', background: C.raised, borderRadius: '99px', width: '100%', animation: 'pulse 1.4s ease-in-out infinite' }} />
                                                 </div>
                                             </div>
-                                            <Link to={`/course/${course.id}`} style={{ textDecoration: 'none' }}>
-                                                <button style={{ padding: '7px 18px', background: C.accent, border: 'none', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                                    Resume Learning →
-                                                </button>
-                                            </Link>
-                                        </div>
+                                        ))}
+                                        <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
                                     </div>
-                                ))}
+                                ) : enrolledCourses.length === 0 ? (
+                                    /* Empty state */
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '16px', textAlign: 'center' }}>
+                                        <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'rgba(60,131,246,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <GraduationCap size={30} color={C.accent} />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '17px', fontWeight: 700, marginBottom: '6px' }}>No courses enrolled yet</p>
+                                            <p style={{ fontSize: '13px', color: C.muted, maxWidth: '280px' }}>Pick a course from our catalog and start building real skills today.</p>
+                                        </div>
+                                        <Link to="/courses" style={{ textDecoration: 'none' }}>
+                                            <button style={{ padding: '10px 24px', background: C.accent, border: 'none', borderRadius: '10px', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                                Browse Courses →
+                                            </button>
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    enrolledCourses.map(course => {
+                                        const enrolledLabel = course.enrolledAt
+                                            ? new Date(course.enrolledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+                                            : 'Recently';
+                                        return (
+                                            <div key={course._id || course.courseId} style={{ background: C.card, borderRadius: '12px', border: `1px solid ${C.borderS}`, overflow: 'hidden', display: 'flex', gap: 0 }}>
+                                                {course.image
+                                                    ? <img src={course.image} alt={course.title} style={{ width: '160px', height: '110px', objectFit: 'cover', flexShrink: 0 }} />
+                                                    : <div style={{ width: '160px', height: '110px', background: C.raised, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><BookOpen size={28} color="#444" /></div>
+                                                }
+                                                <div style={{ padding: '16px 20px', flex: 1 }}>
+                                                    <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>{course.title}</h3>
+                                                    <p style={{ fontSize: '12px', color: C.muted, marginBottom: '12px' }}>Enrolled: {enrolledLabel}</p>
+                                                    {/* Progress bar */}
+                                                    <div style={{ marginBottom: '14px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                            <span style={{ fontSize: '12px', color: C.muted }}>Progress</span>
+                                                            <span style={{ fontSize: '12px', color: C.accent, fontWeight: 600 }}>{course.progress || 0}%</span>
+                                                        </div>
+                                                        <div style={{ height: '5px', background: '#333', borderRadius: '99px', overflow: 'hidden' }}>
+                                                            <div style={{ width: `${course.progress || 0}%`, height: '100%', background: C.accent, borderRadius: '99px', transition: 'width 0.5s' }} />
+                                                        </div>
+                                                    </div>
+                                                    <Link to={`/course/${course.courseId}`} style={{ textDecoration: 'none' }}>
+                                                        <button style={{ padding: '7px 18px', background: C.accent, border: 'none', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                                            Resume Learning →
+                                                        </button>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </>
                     )}
