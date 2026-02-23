@@ -166,7 +166,7 @@ function Hero() {
                                     </div>
                                 ))}
                             </div>
-                            <span>2,40+ devs building right now</span>
+                            <span>2,400+ devs building right now</span>
                         </div>
                     </div>
 
