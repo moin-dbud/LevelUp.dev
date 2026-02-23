@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, BookOpen, ShoppingBag,
-    Settings, LogOut, Shield, Menu, X, ChevronRight, Megaphone, Layers,
+    Settings, LogOut, Shield, Menu, X, ChevronRight, Megaphone, Layers, MessageSquare,
 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
@@ -19,6 +19,7 @@ const NAV = [
     { to: '/course-modules', label: 'Course Modules', Icon: Layers },
     { to: '/enrollments', label: 'Enrollments', Icon: ShoppingBag },
     { to: '/announcements', label: 'Announcements', Icon: Megaphone },
+    { to: '/contacts', label: 'Contacts', Icon: MessageSquare },
     { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 

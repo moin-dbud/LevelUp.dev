@@ -47,7 +47,7 @@ function Nav() {
         window.addEventListener('scroll', h, { passive: true });
         return () => window.removeEventListener('scroll', h);
     }, []);
-    const links = [['Home', '/'], ['Courses', '/courses'], ['Blogs', '/blogs'], ['About', '/about']];
+    const links = [['Home', '/'], ['Courses', '/courses'], ['Contact', '/contact'], ['Blogs', '/blogs'], ['About', '/about']];
     return (
         <header style={{
             position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
@@ -166,7 +166,7 @@ function Hero() {
                                     </div>
                                 ))}
                             </div>
-                            <span>2,400+ devs building right now</span>
+                            <span>2,40+ devs building right now</span>
                         </div>
                     </div>
 

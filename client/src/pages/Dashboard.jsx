@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    BookOpen, Bell, LogOut, ShieldOff, Mail,
+    BookOpen, Bell, LogOut, ShieldOff, Mail, ShieldCheck, X,
     PlayCircle, ChevronRight, Loader2, TrendingUp,
     Megaphone, Zap, Clock, CheckCircle2, AlertCircle,
 } from 'lucide-react';
@@ -103,13 +103,79 @@ function StatCard({ icon: Icon, label, value, color = C.accent }) {
    Main Dashboard
 ────────────────────────────────────────────────── */
 export default function Dashboard() {
-    const { user, getEnrolledCourses, logout } = useAuth();
+    const { user, getEnrolledCourses, logout, sendOTP, verifyOTP } = useAuth();
     const navigate = useNavigate();
 
     const [enrolledCourses, setEnrolledCourses] = useState([]);
     const [coursesLoading, setCoursesLoading] = useState(true);
     const [announcements, setAnnouncements] = useState([]);
     const [annoLoading, setAnnoLoading] = useState(true);
+
+    /* ── Email verification state ── */
+    const [otpModal, setOtpModal] = useState(false);
+    const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+    const [otpSending, setOtpSending] = useState(false);
+    const [otpVerifying, setOtpVerifying] = useState(false);
+    const [otpMsg, setOtpMsg] = useState(null); // { type, text }
+    const [otpSent, setOtpSent] = useState(false);
+    const inputRefs = useRef([]);
+
+    const handleSendOTP = async () => {
+        setOtpSending(true); setOtpMsg(null);
+        try {
+            const data = await sendOTP();
+            setOtpSent(true);
+            setOtpMsg({ type: 'success', text: data.message || 'OTP sent to your email!' });
+        } catch (err) {
+            setOtpMsg({ type: 'error', text: err.message });
+        } finally { setOtpSending(false); }
+    };
+
+    const handleVerifyOTP = async () => {
+        const code = otpDigits.join('');
+        if (code.length !== 6) { setOtpMsg({ type: 'error', text: 'Enter all 6 digits.' }); return; }
+        setOtpVerifying(true); setOtpMsg(null);
+        try {
+            const data = await verifyOTP(code);
+            setOtpMsg({ type: 'success', text: data.message || 'Email verified!' });
+            setTimeout(() => setOtpModal(false), 1200);
+        } catch (err) {
+            setOtpMsg({ type: 'error', text: err.message });
+            setOtpDigits(['', '', '', '', '', '']);
+            setTimeout(() => inputRefs.current[0]?.focus(), 50);
+        } finally { setOtpVerifying(false); }
+    };
+
+    const handleOtpChange = (index, value) => {
+        if (value && !/^\d$/.test(value)) return;
+        const next = [...otpDigits];
+        next[index] = value;
+        setOtpDigits(next);
+        if (value && index < 5) inputRefs.current[index + 1]?.focus();
+    };
+
+    const handleOtpKeyDown = (index, e) => {
+        if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        }
+        if (e.key === 'Enter') handleVerifyOTP();
+    };
+
+    const handleOtpPaste = (e) => {
+        const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        if (text.length === 6) {
+            setOtpDigits(text.split(''));
+            inputRefs.current[5]?.focus();
+            e.preventDefault();
+        }
+    };
+
+    const openOtpModal = () => {
+        setOtpModal(true);
+        setOtpDigits(['', '', '', '', '', '']);
+        setOtpMsg(null);
+        setOtpSent(false);
+    };
 
     /* Enrolled courses */
     useEffect(() => {
@@ -172,7 +238,7 @@ export default function Dashboard() {
 
                     {/* Nav links */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {[['/', 'Home'], ['/courses', 'Courses'], ['/blogs', 'Blogs']].map(([to, label]) => (
+                        {[['/courses', 'Courses'], ['/contact', 'Contact'], ['/blogs', 'Blogs']].map(([to, label]) => (
                             <Link key={to} to={to} className="nav-link"
                                 style={{ padding: '7px 13px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: C.muted, textDecoration: 'none' }}>
                                 {label}
@@ -214,6 +280,131 @@ export default function Dashboard() {
                             : 'Pick up where you left off.'}
                     </p>
                 </div>
+
+                {/* ══ EMAIL VERIFICATION ALERT ══ */}
+                {user && !user.emailVerified && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        padding: '14px 20px', marginBottom: '20px', borderRadius: '12px',
+                        background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)',
+                        animation: 'fadeUp 0.42s ease',
+                    }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(245,158,11,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Mail size={16} color={C.amber} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                                Verify your email address
+                            </p>
+                            <p style={{ margin: 0, fontSize: 12, color: C.muted }}>
+                                Verify <strong style={{ color: C.amber }}>{user.email}</strong> to unlock all platform features.
+                            </p>
+                        </div>
+                        <button onClick={openOtpModal} style={{
+                            padding: '8px 18px', borderRadius: 8, border: 'none',
+                            background: C.amber, color: '#000', fontWeight: 700,
+                            fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
+                            transition: 'opacity 0.15s', flexShrink: 0,
+                        }}>
+                            Verify Now
+                        </button>
+                    </div>
+                )}
+
+                {/* ══ OTP MODAL ══ */}
+                {otpModal && (
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 999,
+                        background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: 20,
+                    }} onClick={() => setOtpModal(false)}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: C.card, border: `1px solid ${C.border}`, borderRadius: 16,
+                            padding: '32px 32px 28px', width: '100%', maxWidth: 420,
+                            position: 'relative', animation: 'fadeUp 0.3s ease',
+                        }}>
+                            <button onClick={() => setOtpModal(false)} style={{
+                                position: 'absolute', top: 14, right: 14, background: 'none',
+                                border: 'none', color: C.dim, cursor: 'pointer', padding: 4,
+                            }}><X size={18} /></button>
+
+                            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentSoft || 'rgba(60,131,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                                    <ShieldCheck size={22} color={C.accent} />
+                                </div>
+                                <h2 style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: '0 0 6px' }}>Verify Your Email</h2>
+                                <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>
+                                    {otpSent ? `Enter the 6-digit code sent to ${user.email}` : `We'll send a verification code to ${user.email}`}
+                                </p>
+                            </div>
+
+                            {!otpSent ? (
+                                <button onClick={handleSendOTP} disabled={otpSending} style={{
+                                    width: '100%', padding: '12px', borderRadius: 10, border: 'none',
+                                    background: C.accent, color: '#fff', fontWeight: 700, fontSize: 14,
+                                    fontFamily: 'inherit', cursor: otpSending ? 'wait' : 'pointer',
+                                    opacity: otpSending ? 0.6 : 1, display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', gap: 8,
+                                }}>
+                                    {otpSending ? <><Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite' }} /> Sending…</> : <><Mail size={15} /> Send Verification Code</>}
+                                </button>
+                            ) : (
+                                <>
+                                    {/* OTP inputs */}
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20 }} onPaste={handleOtpPaste}>
+                                        {otpDigits.map((d, i) => (
+                                            <input key={i} ref={el => inputRefs.current[i] = el}
+                                                value={d} maxLength={1}
+                                                onChange={e => handleOtpChange(i, e.target.value)}
+                                                onKeyDown={e => handleOtpKeyDown(i, e)}
+                                                style={{
+                                                    width: 46, height: 52, borderRadius: 10, border: `1.5px solid ${d ? C.accent : C.border}`,
+                                                    background: C.raised, color: '#fff', fontSize: 20, fontWeight: 800,
+                                                    textAlign: 'center', fontFamily: 'monospace', outline: 'none',
+                                                    transition: 'border-color 0.15s',
+                                                }}
+                                                onFocus={e => e.target.style.borderColor = C.accent}
+                                                onBlur={e => { if (!d) e.target.style.borderColor = C.border; }}
+                                                autoFocus={i === 0}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    <button onClick={handleVerifyOTP} disabled={otpVerifying} style={{
+                                        width: '100%', padding: '12px', borderRadius: 10, border: 'none',
+                                        background: C.accent, color: '#fff', fontWeight: 700, fontSize: 14,
+                                        fontFamily: 'inherit', cursor: otpVerifying ? 'wait' : 'pointer',
+                                        opacity: otpVerifying ? 0.6 : 1, display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', gap: 8, marginBottom: 12,
+                                    }}>
+                                        {otpVerifying ? <><Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite' }} /> Verifying…</> : <><ShieldCheck size={15} /> Verify Code</>}
+                                    </button>
+
+                                    <button onClick={handleSendOTP} disabled={otpSending} style={{
+                                        width: '100%', padding: '10px', borderRadius: 9, border: `1px solid ${C.border}`,
+                                        background: 'transparent', color: C.muted, fontWeight: 600, fontSize: 12,
+                                        fontFamily: 'inherit', cursor: otpSending ? 'wait' : 'pointer',
+                                    }}>
+                                        {otpSending ? 'Sending…' : 'Resend Code'}
+                                    </button>
+                                </>
+                            )}
+
+                            {otpMsg && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 14,
+                                    padding: '10px 14px', borderRadius: 9,
+                                    background: otpMsg.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                                    border: `1px solid ${otpMsg.type === 'success' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                                }}>
+                                    {otpMsg.type === 'success' ? <CheckCircle2 size={14} color={C.green} /> : <AlertCircle size={14} color={C.red} />}
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: otpMsg.type === 'success' ? C.green : C.red }}>{otpMsg.text}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Stat cards */}
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '28px', flexWrap: 'wrap', animation: 'fadeUp 0.45s ease' }}>

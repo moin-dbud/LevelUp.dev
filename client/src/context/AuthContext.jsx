@@ -80,13 +80,22 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
+    /* ── Email Verification ── */
+    const sendOTP = () => apiFetch('/send-otp', 'POST');
+    const verifyOTP = async (otp) => {
+        const data = await apiFetch('/verify-otp', 'POST', { otp });
+        if (data.user) setUser(data.user);
+        return data;
+    };
+
     return (
         <AuthContext.Provider value={{
-            user, loading,
+            user, loading, setUser,
             register, login, logout,
             updateBasicProfile, updateProfessionalProfile,
             getProjects, submitProject, deleteProject,
             getEnrolledCourses, enrollCourse,
+            sendOTP, verifyOTP,
         }}>
             {children}
         </AuthContext.Provider>

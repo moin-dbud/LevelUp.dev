@@ -12,6 +12,11 @@ const userSchema = new mongoose.Schema({
     role: { type: String, default: 'STUDENT' },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 
+    /* ── Email verification ── */
+    emailVerified: { type: Boolean, default: false },
+    emailOTP: { type: String, default: null },
+    emailOTPExpires: { type: Date, default: null },
+
     /* ── Professional ── */
     designation: { type: String, default: '' },
     company: { type: String, default: '' },

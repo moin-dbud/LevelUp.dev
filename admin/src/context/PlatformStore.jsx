@@ -25,6 +25,10 @@ export function PlatformProvider({ children }) {
     /* ── Announcements (local mock) ── */
     const [announcements, setAnnouncements] = useState([]);
 
+    /* ── Contacts ── */
+    const [contacts, setContacts] = useState([]);
+    const [contactsLoading, setContactsLoading] = useState(true);
+
     /* ── Settings (local state) ── */
     const [settings, setSettings] = useState({
         platformName: 'LevelUp.dev',
@@ -138,6 +142,23 @@ export function PlatformProvider({ children }) {
         }
     }, []);
 
+    /* ════════════════════════════════
+       FETCH — contacts from backend
+    ════════════════════════════════ */
+    const fetchContacts = useCallback(async () => {
+        setContactsLoading(true);
+        try {
+            const res = await fetch(`${API}/admin/contacts`, { headers: authHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            setContacts(data.contacts || []);
+        } catch (err) {
+            console.error('Contacts fetch error:', err);
+        } finally {
+            setContactsLoading(false);
+        }
+    }, []);
+
     /* Load everything on mount */
     useEffect(() => {
         fetchUsers();
@@ -145,7 +166,8 @@ export function PlatformProvider({ children }) {
         fetchCourses();
         fetchAnnouncements();
         fetchSettings();
-    }, [fetchUsers, fetchStats, fetchCourses, fetchAnnouncements, fetchSettings]);
+        fetchContacts();
+    }, [fetchUsers, fetchStats, fetchCourses, fetchAnnouncements, fetchSettings, fetchContacts]);
 
     /* ════════════════════════════════
        USER ACTIONS
@@ -327,6 +349,58 @@ export function PlatformProvider({ children }) {
     const totalEnrollments = users.reduce((s, u) => s + (u.enrolledCount || 0), 0);
     const activeCoursesCount = courses.filter(c => c.status === 'live').length;
 
+    /* ════════════════════════════════
+       CONTACT ACTIONS
+    ════════════════════════════════ */
+    const updateContactStatus = useCallback(async (id, status) => {
+        setContacts(prev => prev.map(c => c._id === id ? { ...c, status } : c));
+        try {
+            const res = await fetch(`${API}/admin/contacts/${id}`, {
+                method: 'PATCH',
+                headers: authHeaders(),
+                body: JSON.stringify({ status }),
+            });
+            if (!res.ok) throw new Error('Update failed');
+            showToast(`Ticket marked as ${status}`);
+        } catch (err) {
+            showToast(err.message, 'error');
+            fetchContacts();
+        }
+    }, [showToast, fetchContacts]);
+
+    const replyToContact = useCallback(async (id, replyMessage) => {
+        try {
+            const res = await fetch(`${API}/admin/contacts/${id}/reply`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ replyMessage }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Reply failed');
+            setContacts(prev => prev.map(c => c._id === id ? { ...c, status: 'replied' } : c));
+            showToast('Reply sent successfully!');
+            return data;
+        } catch (err) {
+            showToast(err.message, 'error');
+            throw err;
+        }
+    }, [showToast]);
+
+    const deleteContact = useCallback(async (id) => {
+        setContacts(prev => prev.filter(c => c._id !== id));
+        try {
+            const res = await fetch(`${API}/admin/contacts/${id}`, {
+                method: 'DELETE',
+                headers: authHeaders(),
+            });
+            if (!res.ok) throw new Error('Delete failed');
+            showToast('Ticket deleted');
+        } catch (err) {
+            showToast(err.message, 'error');
+            fetchContacts();
+        }
+    }, [showToast, fetchContacts]);
+
     return (
         <PlatformContext.Provider value={{
             /* Users */
@@ -343,6 +417,10 @@ export function PlatformProvider({ children }) {
 
             /* Announcements */
             announcements, addAnnouncement, editAnnouncement, deleteAnnouncement, fetchAnnouncements,
+
+            /* Contacts */
+            contacts, contactsLoading, fetchContacts,
+            updateContactStatus, replyToContact, deleteContact,
 
             /* Settings */
             settings, updateSettings,

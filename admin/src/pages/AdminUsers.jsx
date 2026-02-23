@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, UserCheck, UserX, Mail } from 'lucide-react';
+import { Search, Filter, UserCheck, UserX, Mail, ShieldCheck } from 'lucide-react';
 import { usePlatform } from '../context/PlatformStore';
 
 const C = {
@@ -47,18 +47,18 @@ export default function AdminUsers() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                             <tr style={{ borderBottom: `1px solid ${C.borderS}` }}>
-                                {['User', 'Email', 'Role', 'Courses', 'Joined', 'Status', 'Actions'].map(h => (
+                                {['User', 'Email', 'Role', 'Verified', 'Courses', 'Joined', 'Status', 'Actions'].map(h => (
                                     <th key={h} style={{ padding: '12px 20px', textAlign: 'left', fontSize: '11px', color: C.dim, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {usersLoading ? (
-                                <tr><td colSpan={7} style={{ padding: '30px 20px', textAlign: 'center', color: C.dim, fontSize: '13px' }}>Loading users from server…</td></tr>
+                                <tr><td colSpan={8} style={{ padding: '30px 20px', textAlign: 'center', color: C.dim, fontSize: '13px' }}>Loading users from server…</td></tr>
                             ) : usersError ? (
-                                <tr><td colSpan={7} style={{ padding: '30px 20px', textAlign: 'center', color: C.accent, fontSize: '13px' }}>{usersError}</td></tr>
+                                <tr><td colSpan={8} style={{ padding: '30px 20px', textAlign: 'center', color: C.accent, fontSize: '13px' }}>{usersError}</td></tr>
                             ) : filtered.length === 0 ? (
-                                <tr><td colSpan={7} style={{ padding: '30px 20px', textAlign: 'center', color: C.dim, fontSize: '13px' }}>No users found.</td></tr>
+                                <tr><td colSpan={8} style={{ padding: '30px 20px', textAlign: 'center', color: C.dim, fontSize: '13px' }}>No users found.</td></tr>
                             ) : filtered.map(u => (
                                 <tr key={u._id}
                                     style={{ borderBottom: `1px solid ${C.borderS}` }}
@@ -78,6 +78,17 @@ export default function AdminUsers() {
                                         <span style={{ background: u.role === 'ADMIN' ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.12)', color: u.role === 'ADMIN' ? C.accent : C.blue, borderRadius: '20px', padding: '2px 10px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>
                                             {u.role}
                                         </span>
+                                    </td>
+                                    <td style={{ padding: '13px 20px' }}>
+                                        {u.emailVerified ? (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(34,197,94,0.1)', color: C.green, borderRadius: '20px', padding: '3px 10px', fontWeight: 600, fontSize: '11px' }}>
+                                                <ShieldCheck size={11} /> Verified
+                                            </span>
+                                        ) : (
+                                            <span style={{ background: 'rgba(245,158,11,0.12)', color: C.yellow, borderRadius: '20px', padding: '3px 10px', fontWeight: 600, fontSize: '11px' }}>
+                                                Pending
+                                            </span>
+                                        )}
                                     </td>
                                     <td style={{ padding: '13px 20px', fontWeight: 600 }}>{u.enrolledCount ?? 0}</td>
                                     <td style={{ padding: '13px 20px', color: C.muted }}>

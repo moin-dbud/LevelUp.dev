@@ -98,8 +98,64 @@ const submissionTemplate = (projectTitle) => layout(`
     </center>
 `);
 
+const contactUserTemplate = (name, subject) => layout(`
+    <h1 class="h1">We got your message! 📨</h1>
+    <p class="p">Hi <strong>${name}</strong>,</p>
+    <p class="p">Thanks for reaching out to us. We've received your message regarding:</p>
+    <div class="card" style="text-align: center;">
+        <h2 style="margin: 0; color: #3C83F6; font-size: 18px; font-weight: 800;">${subject}</h2>
+    </div>
+    <p class="p">Our team typically responds within <strong>24 hours</strong>. We'll get back to you at this email address as soon as possible.</p>
+    <p class="p" style="font-size: 14px; color: #6b7280;">If your issue is urgent, you can reply directly to this email.</p>
+    <center>
+        <a href="http://localhost:5173/" class="btn">Back to LevelUp.dev</a>
+    </center>
+`);
+
+const contactAdminTemplate = (ticket) => layout(`
+    <h1 class="h1">New Contact Submission 📋</h1>
+    <div class="card">
+        <p class="p" style="margin: 0 0 8px; font-weight: 700; color: #0a0a0a;">From: ${ticket.name} (${ticket.email})</p>
+        <p class="p" style="margin: 0 0 8px; font-size: 14px;"><strong>Category:</strong> ${ticket.category}</p>
+        <p class="p" style="margin: 0 0 8px; font-size: 14px;"><strong>Subject:</strong> ${ticket.subject}</p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
+        <p class="p" style="margin: 0; font-size: 14px; white-space: pre-wrap;">${ticket.message}</p>
+    </div>
+    <p class="p" style="font-size: 13px; color: #6b7280;">User ID: ${ticket.userId || 'Guest (not logged in)'}</p>
+    <p class="p" style="font-size: 13px; color: #6b7280;">Submitted: ${new Date(ticket.createdAt).toLocaleString()}</p>
+`);
+
+const otpTemplate = (name, otp) => layout(`
+    <h1 class="h1">Verify your email ✉️</h1>
+    <p class="p">Hi <strong>${name}</strong>,</p>
+    <p class="p">Use the following verification code to confirm your email address on LevelUp.dev:</p>
+    <div class="card" style="text-align: center; padding: 28px 20px;">
+        <p style="margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #3C83F6; font-family: monospace;">${otp}</p>
+    </div>
+    <p class="p" style="font-size: 14px;">This code expires in <strong>10 minutes</strong>. If you didn't request this, you can safely ignore this email.</p>
+    <p class="p" style="font-size: 13px; color: #6b7280;">For security, never share this code with anyone.</p>
+`);
+
+const contactReplyTemplate = (name, subject, replyMessage) => layout(`
+    <h1 class="h1">Reply to your message 💬</h1>
+    <p class="p">Hi <strong>${name}</strong>,</p>
+    <p class="p">We're following up on your message regarding:</p>
+    <div class="card" style="margin-bottom: 8px;">
+        <p class="p" style="margin: 0 0 6px; font-weight: 700; color: #0a0a0a; font-size: 15px;">${subject}</p>
+    </div>
+    <div class="card" style="background-color: #f0f9ff; border-color: #bfdbfe;">
+        <p class="p" style="margin: 0 0 6px; font-weight: 700; color: #1e40af; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Admin Reply</p>
+        <p class="p" style="margin: 0; font-size: 14px; white-space: pre-wrap; color: #1e3a5f;">${replyMessage}</p>
+    </div>
+    <p class="p" style="font-size: 13px; color: #6b7280; margin-top: 16px;">If you need further assistance, reply directly to this email.</p>
+`);
+
 module.exports = {
     welcomeTemplate,
     enrollmentTemplate,
-    submissionTemplate
+    submissionTemplate,
+    contactUserTemplate,
+    contactAdminTemplate,
+    otpTemplate,
+    contactReplyTemplate,
 };

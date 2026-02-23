@@ -12,6 +12,7 @@ import AdminEnrollments from './pages/AdminEnrollments';
 import AdminAnnouncements from './pages/AdminAnnouncements';
 import AdminSettings from './pages/AdminSettings';
 import AdminCourseModules from './pages/AdminCourseModules';
+import AdminContacts from './pages/AdminContacts';
 
 /* ── Full-page loader while session resolves ── */
 function Loader() {
@@ -62,6 +63,7 @@ function AdminApp() {
       <Route path="/enrollments" element={<PrivateAdminRoute><AdminEnrollments /></PrivateAdminRoute>} />
       <Route path="/announcements" element={<PrivateAdminRoute><AdminAnnouncements /></PrivateAdminRoute>} />
       <Route path="/course-modules" element={<PrivateAdminRoute><AdminCourseModules /></PrivateAdminRoute>} />
+      <Route path="/contacts" element={<PrivateAdminRoute><AdminContacts /></PrivateAdminRoute>} />
       <Route path="/settings" element={<PrivateAdminRoute><AdminSettings /></PrivateAdminRoute>} />
 
       {/* Catch-all */}

@@ -103,6 +103,7 @@ router.get('/users', adminMiddleware, async (req, res) => {
             email: u.email,
             role: u.role || 'STUDENT',
             status: u.status || 'active',
+            emailVerified: !!u.emailVerified,
             enrolledCourses: u.enrolledCourses || [],
             enrolledCount: (u.enrolledCourses || []).length,
             createdAt: u.createdAt,
@@ -484,4 +485,73 @@ router.patch('/settings', adminMiddleware, async (req, res) => {
     }
 });
 
+/* ════════════════════════════════════════
+   CONTACT MANAGEMENT
+════════════════════════════════════════ */
+const Contact = require('../models/Contact');
+const { sendMail } = require('../utils/email');
+
+/* GET /api/admin/contacts — list all contact submissions */
+router.get('/contacts', adminMiddleware, async (req, res) => {
+    try {
+        const contacts = await Contact.find({}).sort({ createdAt: -1 });
+        res.json({ contacts });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/* PATCH /api/admin/contacts/:id — update status / admin note */
+router.patch('/contacts/:id', adminMiddleware, async (req, res) => {
+    try {
+        const { status, adminNote } = req.body;
+        const update = {};
+        if (status) update.status = status;
+        if (adminNote !== undefined) update.adminNote = adminNote;
+        const contact = await Contact.findByIdAndUpdate(req.params.id, { $set: update }, { new: true });
+        if (!contact) return res.status(404).json({ message: 'Ticket not found' });
+        res.json({ contact });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/* POST /api/admin/contacts/:id/reply — send reply email */
+router.post('/contacts/:id/reply', adminMiddleware, async (req, res) => {
+    try {
+        const { replyMessage } = req.body;
+        if (!replyMessage?.trim()) return res.status(400).json({ message: 'Reply message is required' });
+
+        const contact = await Contact.findById(req.params.id);
+        if (!contact) return res.status(404).json({ message: 'Ticket not found' });
+
+        const { contactReplyTemplate } = require('../utils/emailTemplates');
+        await sendMail(
+            contact.email,
+            `Re: ${contact.subject} — LevelUp.dev`,
+            contactReplyTemplate(contact.name, contact.subject, replyMessage)
+        );
+
+        contact.status = 'replied';
+        await contact.save();
+
+        res.json({ message: 'Reply sent!', contact });
+    } catch (err) {
+        console.error('Contact reply error:', err);
+        res.status(500).json({ message: 'Failed to send reply' });
+    }
+});
+
+/* DELETE /api/admin/contacts/:id */
+router.delete('/contacts/:id', adminMiddleware, async (req, res) => {
+    try {
+        const contact = await Contact.findByIdAndDelete(req.params.id);
+        if (!contact) return res.status(404).json({ message: 'Ticket not found' });
+        res.json({ message: 'Ticket deleted' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;
+

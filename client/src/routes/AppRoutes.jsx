@@ -13,6 +13,7 @@ import Profile from '../pages/Profile';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import Courses from '../pages/Courses';
+import Contact from '../pages/Contact';
 import NotFound from '../pages/NotFound';
 
 const API = 'http://localhost:5000/api';
@@ -179,12 +180,13 @@ const AppRoutes = () => {
     return (
         <MaintenanceGuard>
             <Routes>
-                {/* ── Public Routes ── */}
-                <Route path="/" element={<Home />} />
+                {/* ── Public Routes (accessible to everyone) ── */}
                 <Route path="/about" element={<About />} />
                 <Route path="/blogs" element={<Blogs />} />
+                <Route path="/contact" element={<Contact />} />
 
-                {/* ── Guest-only ── */}
+                {/* ── Guest-only (logged-in users → /dashboard) ── */}
+                <Route path="/" element={<GuestRoute><Home /></GuestRoute>} />
                 <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
                 <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 

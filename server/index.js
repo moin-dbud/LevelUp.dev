@@ -7,6 +7,7 @@ const multer = require('multer');
 const fs = require('fs');
 const { router: authRouter } = require('./routes/auth');
 const adminRouter = require('./routes/admin');
+const contactRouter = require('./routes/contact');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -51,6 +52,7 @@ app.post('/api/admin/upload', upload.single('image'), (req, res) => {
 /* ── Routes ── */
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/contact', contactRouter);
 
 app.get('/', (_, res) => res.json({ status: 'LevelUp.dev API running ✅' }));
 

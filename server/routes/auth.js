@@ -88,6 +88,81 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 });
 
+/* ═══════════════════════════════════════
+   EMAIL VERIFICATION (OTP)
+═══════════════════════════════════════ */
+
+/* POST /api/auth/send-otp — generate & email a 6-digit OTP */
+router.post('/send-otp', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (user.emailVerified) return res.status(400).json({ message: 'Email already verified' });
+
+        // Rate-limit: don't allow resend within 60 seconds
+        if (user.emailOTPExpires && user.emailOTPExpires > new Date(Date.now() + 9 * 60 * 1000)) {
+            return res.status(429).json({ message: 'OTP already sent. Please wait before requesting again.' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const hashedOTP = await bcrypt.hash(otp, 10);
+
+        user.emailOTP = hashedOTP;
+        user.emailOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        await user.save();
+
+        // Send OTP email
+        const { otpTemplate } = require('../utils/emailTemplates');
+        await sendMail(
+            user.email,
+            'Verify your email — LevelUp.dev',
+            otpTemplate(user.firstName, otp)
+        );
+
+        res.json({ message: 'OTP sent to your email.' });
+    } catch (err) {
+        console.error('Send OTP error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/* POST /api/auth/verify-otp — verify the OTP */
+router.post('/verify-otp', authMiddleware, async (req, res) => {
+    try {
+        const { otp } = req.body;
+        if (!otp) return res.status(400).json({ message: 'OTP is required' });
+
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (user.emailVerified) return res.status(400).json({ message: 'Email already verified' });
+
+        if (!user.emailOTP || !user.emailOTPExpires) {
+            return res.status(400).json({ message: 'No OTP requested. Please request a new one.' });
+        }
+
+        if (new Date() > user.emailOTPExpires) {
+            user.emailOTP = null;
+            user.emailOTPExpires = null;
+            await user.save();
+            return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+
+        const valid = await bcrypt.compare(otp, user.emailOTP);
+        if (!valid) return res.status(400).json({ message: 'Invalid OTP. Please try again.' });
+
+        user.emailVerified = true;
+        user.emailOTP = null;
+        user.emailOTPExpires = null;
+        await user.save();
+
+        res.json({ message: 'Email verified successfully!', user: sanitize(user) });
+    } catch (err) {
+        console.error('Verify OTP error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 /* PUT /api/auth/profile/basic */
 router.put('/profile/basic', authMiddleware, async (req, res) => {
     try {
