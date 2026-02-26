@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     BookOpen, ChevronDown, ChevronRight, Plus, Trash2,
     Pencil, Check, X, FileText, HelpCircle, ClipboardList,
     Code2, Layers, GripVertical, Loader2, Save, Eye, EyeOff, ChevronUp,
+    Video, Upload,
 } from 'lucide-react';
 
 const API = 'http://localhost:5000/api';
@@ -17,10 +18,12 @@ const C = {
     green: '#22c55e', greenDim: 'rgba(34,197,94,0.12)',
     amber: '#f59e0b', amberDim: 'rgba(245,158,11,0.12)',
     purple: '#a855f7', purpleDim: 'rgba(168,85,247,0.12)',
+    rose: '#f43f5e', roseDim: 'rgba(244,63,94,0.12)',
     text: '#fff', muted: '#a1a1aa', dim: '#555',
 };
 
 const TYPES = [
+    { value: 'video', label: 'Video', Icon: Video, color: C.rose, dimBg: C.roseDim },
     { value: 'article', label: 'Article', Icon: FileText, color: C.blue, dimBg: C.blueDim },
     { value: 'quiz', label: 'Quiz', Icon: HelpCircle, color: C.amber, dimBg: C.amberDim },
     { value: 'assignment', label: 'Assignment', Icon: ClipboardList, color: C.green, dimBg: C.greenDim },
@@ -77,6 +80,190 @@ function ArticleEditor({ value, onChange }) {
                     onFocus={e => e.target.style.borderColor = C.blue}
                     onBlur={e => e.target.style.borderColor = C.border} />
             )}
+        </div>
+    );
+}
+
+/* ── Video editor ── */
+function VideoEditor({ data = {}, onChange }) {
+    const up = (k, v) => { onChange({ ...data, [k]: v }); };
+    const fileRef = useRef(null);
+    const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [dragOver, setDragOver] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleUpload = async (file) => {
+        if (!file) return;
+        const maxSize = 200 * 1024 * 1024; // 200MB
+        if (file.size > maxSize) {
+            setError('File too large. Maximum size is 200MB.');
+            return;
+        }
+        if (!/video\/(mp4|webm|quicktime|x-msvideo|x-matroska)/.test(file.type)) {
+            setError('Unsupported format. Use MP4, WebM, MOV, AVI, or MKV.');
+            return;
+        }
+        setError('');
+        setUploading(true);
+        setProgress(0);
+
+        const formData = new FormData();
+        formData.append('video', file);
+
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${API}/admin/upload-video`);
+            xhr.setRequestHeader('Authorization', `Bearer ${getToken()}`);
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+            };
+
+            const result = await new Promise((resolve, reject) => {
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(JSON.parse(xhr.responseText));
+                    } else {
+                        reject(new Error(JSON.parse(xhr.responseText)?.message || 'Upload failed'));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Upload failed — check connection'));
+                xhr.send(formData);
+            });
+
+            up('videoUrl', result.url);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setUploading(false);
+            setProgress(0);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files[0];
+        handleUpload(file);
+    };
+
+    const formatSize = (bytes) => {
+        if (!bytes) return '';
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Upload area */}
+            <div>
+                {label('Video File')}
+                {data.videoUrl ? (
+                    <div style={{ background: '#0d0d0d', border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+                        <video
+                            src={data.videoUrl}
+                            controls
+                            style={{ width: '100%', maxHeight: '360px', display: 'block', background: '#000' }}
+                        />
+                        <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: '12px', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                {data.videoUrl.split('/').pop()}
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    onClick={() => { fileRef.current?.click(); }}
+                                    style={{ ...btn('transparent', C.rose), padding: '5px 10px', fontSize: '11px', border: `1px solid rgba(244,63,94,0.3)` }}
+                                >
+                                    <Upload size={12} /> Replace
+                                </button>
+                                <button
+                                    onClick={() => up('videoUrl', '')}
+                                    style={{ ...btn('transparent', C.accent), padding: '5px 10px', fontSize: '11px', border: `1px solid rgba(239,68,68,0.3)` }}
+                                >
+                                    <Trash2 size={12} /> Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={handleDrop}
+                        onClick={() => !uploading && fileRef.current?.click()}
+                        style={{
+                            border: `2px dashed ${dragOver ? C.rose : 'rgba(255,255,255,0.12)'}`,
+                            borderRadius: '12px',
+                            padding: uploading ? '20px' : '40px 20px',
+                            textAlign: 'center',
+                            cursor: uploading ? 'default' : 'pointer',
+                            background: dragOver ? 'rgba(244,63,94,0.06)' : '#0d0d0d',
+                            transition: 'all 0.2s',
+                        }}
+                    >
+                        {uploading ? (
+                            <div>
+                                <Loader2 size={28} color={C.rose} style={{ animation: 'spin 0.7s linear infinite', margin: '0 auto 10px', display: 'block' }} />
+                                <p style={{ fontSize: '13px', color: C.muted, margin: '0 0 10px' }}>Uploading… {progress}%</p>
+                                <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '99px', height: '6px', overflow: 'hidden', maxWidth: '300px', margin: '0 auto' }}>
+                                    <div style={{ height: '100%', width: `${progress}%`, background: `linear-gradient(90deg, ${C.rose}, #fb7185)`, borderRadius: '99px', transition: 'width 0.2s' }} />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: C.roseDim, border: `1px solid rgba(244,63,94,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                    <Upload size={22} color={C.rose} />
+                                </div>
+                                <p style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 5px', color: C.text }}>
+                                    Drag & drop video or <span style={{ color: C.rose }}>click to browse</span>
+                                </p>
+                                <p style={{ fontSize: '12px', color: C.dim, margin: 0 }}>
+                                    MP4, WebM, MOV, AVI, MKV — up to 200MB
+                                </p>
+                            </>
+                        )}
+                    </div>
+                )}
+                <input ref={fileRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
+                    style={{ display: 'none' }} onChange={e => handleUpload(e.target.files[0])} />
+                {error && (
+                    <p style={{ fontSize: '12px', color: C.accent, marginTop: '8px', margin: '8px 0 0' }}>
+                        ⚠ {error}
+                    </p>
+                )}
+            </div>
+
+            {/* Video description / notes */}
+            <div>
+                {label('Video Description / Notes')}
+                <textarea
+                    value={data.videoDescription || ''}
+                    onChange={e => up('videoDescription', e.target.value)}
+                    placeholder="Add a description, key takeaways, or supplementary notes for this video lesson…"
+                    style={ta({ minHeight: '120px' })}
+                    onFocus={e => e.target.style.borderColor = C.rose}
+                    onBlur={e => e.target.style.borderColor = C.border}
+                />
+            </div>
+
+            {/* Thumbnail URL */}
+            <div>
+                {label('Thumbnail URL (optional)')}
+                <input
+                    value={data.videoThumbnail || ''}
+                    onChange={e => up('videoThumbnail', e.target.value)}
+                    placeholder="https://example.com/thumbnail.jpg"
+                    style={inp({})}
+                    onFocus={e => e.target.style.borderColor = C.rose}
+                    onBlur={e => e.target.style.borderColor = C.border}
+                />
+                {data.videoThumbnail && (
+                    <div style={{ marginTop: '8px' }}>
+                        <img src={data.videoThumbnail} alt="Thumbnail preview" style={{ maxWidth: '180px', borderRadius: '8px', border: `1px solid ${C.border}` }} />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -246,14 +433,7 @@ function LessonContentPanel({ lesson, lessonIdx, moduleId, courseId, onSaveLesso
     const save = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`${API}/admin/courses/${courseId}/modules/${moduleId}`, {
-                method: 'PUT',
-                headers: auth(),
-                body: JSON.stringify({ title: undefined, order: undefined, updateLesson: { idx: lessonIdx, data: draft } }),
-            });
-            // We'll do an inline save via a special endpoint instead
-            // For now: save the entire module with the updated lesson
-            onSaveLesson(lessonIdx, draft);
+            await onSaveLesson(lessonIdx, draft);
             setDirty(false);
         } catch (err) { alert(err.message); }
         finally { setSaving(false); }
@@ -277,6 +457,9 @@ function LessonContentPanel({ lesson, lessonIdx, moduleId, courseId, onSaveLesso
             </div>
 
             {/* Content editor */}
+            {draft.type === 'video' && (
+                <VideoEditor data={draft} onChange={v => { setDraft(p => ({ ...p, ...v, type: p.type })); setDirty(true); }} />
+            )}
             {draft.type === 'article' && (
                 <ArticleEditor value={draft.content || ''} onChange={v => up('content', v)} />
             )}
@@ -284,10 +467,10 @@ function LessonContentPanel({ lesson, lessonIdx, moduleId, courseId, onSaveLesso
                 <QuizEditor questions={draft.questions || []} onChange={v => up('questions', v)} />
             )}
             {draft.type === 'assignment' && (
-                <AssignmentEditor data={draft} onChange={v => setDraft(p => ({ ...p, ...v, type: p.type }))} />
+                <AssignmentEditor data={draft} onChange={v => { setDraft(p => ({ ...p, ...v, type: p.type })); setDirty(true); }} />
             )}
             {draft.type === 'coding' && (
-                <CodingEditor data={draft} onChange={v => setDraft(p => ({ ...p, ...v, type: p.type }))} />
+                <CodingEditor data={draft} onChange={v => { setDraft(p => ({ ...p, ...v, type: p.type })); setDirty(true); }} />
             )}
         </div>
     );
@@ -565,7 +748,7 @@ export default function AdminCourseModules() {
                     <h1 style={{ fontSize: '22px', fontWeight: 900, margin: 0 }}>Course Modules</h1>
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: C.muted }}>
-                    Select a course, then build its modules and lesson content (articles · quizzes · assignments · coding).
+                    Select a course, then build its modules and lesson content (videos · articles · quizzes · assignments · coding).
                 </p>
             </div>
 
