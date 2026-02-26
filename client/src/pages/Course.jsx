@@ -5,7 +5,7 @@ import {
     FileText, HelpCircle, ClipboardList, Code2,
     CheckCircle2, Circle, BookOpen, Users, Clock,
     PlayCircle, Lock, Loader2, AlertCircle, Trophy,
-    Check, X, LayoutList, Bell, Medal, PanelRight,
+    Check, X, LayoutList, Bell, Medal, PanelRight, Video,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +24,7 @@ const C = {
 
 /* ── lesson type config ── */
 const TYPES = {
+    video: { Icon: Video, color: '#f43f5e', label: 'Video' },
     article: { Icon: FileText, color: C.accent, label: 'Article' },
     quiz: { Icon: HelpCircle, color: C.amber, label: 'Quiz' },
     assignment: { Icon: ClipboardList, color: C.green, label: 'Assignment' },
@@ -278,6 +279,38 @@ function CodingViewer({ lesson }) {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ────────────────────────────────────────────
+   Video Viewer
+──────────────────────────────────────────── */
+function VideoViewer({ lesson }) {
+    const { videoUrl, videoDescription } = lesson;
+    if (!videoUrl) return (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: C.dim }}>
+            <Video size={32} style={{ margin: '0 auto 12px', display: 'block' }} />
+            <p style={{ fontSize: '14px' }}>No video uploaded for this lesson yet.</p>
+        </div>
+    );
+    return (
+        <div>
+            <div style={{ background: '#000', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${C.border}`, marginBottom: '20px' }}>
+                <video
+                    src={videoUrl}
+                    controls
+                    style={{ width: '100%', maxHeight: '520px', display: 'block' }}
+                />
+            </div>
+            {videoDescription && (
+                <div style={{ background: C.raised, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '18px 22px' }}>
+                    <p style={{ fontWeight: 700, fontSize: '13px', color: '#f43f5e', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</p>
+                    <div style={{ fontSize: '15px', lineHeight: 1.85, color: '#ccc', whiteSpace: 'pre-wrap' }}>
+                        {videoDescription}
+                    </div>
                 </div>
             )}
         </div>
@@ -583,6 +616,9 @@ export default function CoursePage() {
 
                             {/* Lesson content */}
                             <div style={{ flex: 1, overflowY: 'auto', padding: '32px 48px' }}>
+                                {activeLesson.lesson.type === 'video' && (
+                                    <VideoViewer lesson={activeLesson.lesson} />
+                                )}
                                 {activeLesson.lesson.type === 'article' && (
                                     <ArticleViewer content={activeLesson.lesson.content} />
                                 )}

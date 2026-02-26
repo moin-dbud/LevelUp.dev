@@ -18,7 +18,7 @@ app.use(cors({
     credentials: true,
 }));
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 /* ── Uploads folder ── */
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -42,11 +42,35 @@ const upload = multer({
     },
 });
 
+/* ── Video multer config ── */
+const videoStorage = multer.diskStorage({
+    destination: (_, __, cb) => cb(null, UPLOADS_DIR),
+    filename: (_, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `video-${Date.now()}${ext}`);
+    },
+});
+const videoUpload = multer({
+    storage: videoStorage,
+    limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
+    fileFilter: (_, file, cb) => {
+        if (/video\/(mp4|webm|quicktime|x-msvideo|x-matroska)/.test(file.mimetype)) cb(null, true);
+        else cb(new Error('Only video files are allowed (mp4, webm, mov, avi, mkv)'));
+    },
+});
+
 /* ── Image upload endpoint (admin only — no strict JWT here for simplicity) ── */
 app.post('/api/admin/upload', upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const url = `http://localhost:5000/uploads/${req.file.filename}`;
     res.json({ url });
+});
+
+/* ── Video upload endpoint ── */
+app.post('/api/admin/upload-video', videoUpload.single('video'), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: 'No video uploaded' });
+    const url = `http://localhost:5000/uploads/${req.file.filename}`;
+    res.json({ url, filename: req.file.filename, size: req.file.size });
 });
 
 /* ── Routes ── */
