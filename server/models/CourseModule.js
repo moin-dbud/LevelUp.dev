@@ -12,11 +12,16 @@ const quizQuestionSchema = new mongoose.Schema({
 const lessonSchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true },
     duration: { type: String, default: '' },
-    type: { type: String, enum: ['article', 'quiz', 'assignment', 'coding'], default: 'article' },
+    type: { type: String, enum: ['video', 'article', 'quiz', 'assignment', 'coding'], default: 'article' },
     free: { type: Boolean, default: false },
 
     /* ── Article content (markdown / rich text) ── */
     content: { type: String, default: '' },
+
+    /* ── Video specific ── */
+    videoUrl: { type: String, default: '' },
+    videoDescription: { type: String, default: '' },
+    videoThumbnail: { type: String, default: '' },
 
     /* ── Quiz specific ── */
     questions: { type: [quizQuestionSchema], default: [] },
