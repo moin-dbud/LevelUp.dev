@@ -1,6 +1,6 @@
 # LevelUp.dev 🚀
 
-An enterprise-grade, full-stack online learning and course management platform. **LevelUp.dev** provides learners with a modern, interactive learning environment featuring video streaming, markdown articles, quizzes, assignments, and hands-on coding challenges — coupled with automated progress tracking, course leaderboards, email verification, and a comprehensive admin management suite.
+An enterprise-grade, full-stack online learning and course management platform. **LevelUp.dev** provides learners with a modern, interactive learning environment featuring video streaming, markdown articles, quizzes, assignments, and hands-on coding challenges — coupled with automated progress tracking, course leaderboards, and a comprehensive admin management suite.
 
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-7.3-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
